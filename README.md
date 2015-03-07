@@ -17,7 +17,7 @@ Watch the current directory for changes and run Pester on any changes.
 New-Guard -Path .\lib\chef\knife\ -PathFilter '*.rb' -MonitorSubdirectories -TestCommand rspec -TestPath .\spec\unit\knife\
 Wait-Guard
 ```
-Watch all .rb files under .\lib\chef\knife and when they change, run the unit tests
+Watch all .rb files under .\lib\chef\knife and when they change, run the unit tests using RSpec.
 
 ```powershell
 dir *.ps1 | New-Guard -TestPath {"./Tests/$($_.basename).Tests.ps1"}
