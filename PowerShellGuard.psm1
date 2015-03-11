@@ -164,7 +164,7 @@ function Wait-Guard
   do {
     if ($script:GuardQueue.count -gt 0)
     {
-      clear-screen
+      clear-host
       $Command = $script:GuardQueue.dequeue()
       Write-Verbose $Command
       invoke-expression "$Command"
