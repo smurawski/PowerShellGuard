@@ -131,7 +131,7 @@ function Add-GuardQueueCommand
     [string]
     $TestCommandString
   )
-  if (($Path -notlike '*\.git') )
+  if ($Path -notlike '*\.git*')
   {
     Get-GuardQueue
     $array = $script:GuardQueue.ToArray()
