@@ -1,3 +1,5 @@
+$script:Guards = @()
+
 function New-Guard
 {
   <#
@@ -24,10 +26,10 @@ function New-Guard
       [switch]
       $MonitorSubdirectories,
       # Standard path filter syntax
-      $PathFilter = '*.*',
+      $PathFilter,
       # Command to execute to run tests.  Defaults to Invoke-Pester.
       $TestCommand = 'Invoke-Pester',
-      #File or directory containing the tests to run.
+      # File or directory containing the tests to run.
       [parameter(valuefrompipelinebypropertyname)]
       $TestPath,
       # Start monitoring running tests immediately.
@@ -36,7 +38,7 @@ function New-Guard
   )
   begin
   {
-    Set-GuardTestCommandQueue
+    Set-GuardCommandQueue
   }
   process
   {
@@ -50,8 +52,26 @@ function New-Guard
       $TestPath = (resolve-path $TestPath).Path
     }
 
-    $Action = New-GuardFileSystemWatcherAction -TestCommand $TestCommand -TestPath $TestPath -PathFilter $PathFilter -IncludeSubdirectories:$MonitorSubdirectories
-    New-GuardFileSystemWatcher -path $Path -action $Action
+    $GuardFileSystemWatcherActionParameters = @{
+      TestCommand = $TestCommand
+      TestPath = $TestPath
+    }
+
+    $FileSystemWatcherParameters = @{
+      Path = $Path
+      Action = New-GuardFileSystemWatcherAction @GuardFileSystemWatcherActionParameters
+      IncludeSubdirectories = $MonitorSubdirectories
+    }
+    if ($psboundparameters.containskey('pathfilter'))
+    {
+      $FileSystemWatcherParameters.PathFilter = $PathFilter
+    }
+    elseif (-not (get-item $path).PSIsContainer)
+    {
+      $FileSystemWatcherParameters.PathFilter = split-path -leaf $path
+      $FileSystemWatcherParameters.Path = split-path $path
+    }
+    New-GuardFileSystemWatcher @FileSystemWatcherParameters
   }
   end
   {
@@ -62,59 +82,65 @@ function New-Guard
   }
 }
 
-function Set-GuardTestCommandQueue
+function New-GuardFileSystemWatcherAction
 {
-  if (-not ([appdomain]::CurrentDomain.GetData("GuardQueue")))
-  {
-    [appdomain]::CurrentDomain.SetData("GuardQueue", (new-object System.Collections.Queue))
-  }
+  [cmdletbinding()]
+  param( $TestCommand, $TestPath)
+
+  $action = @"
+`$Parameters = @{
+  Path = `$eventargs.fullpath
+  TestCommandString = '$TestCommand $TestPath'
 }
 
+Add-GuardQueueCommand @Parameters
+"@
+  [scriptblock]::create($action)
+}
 
 function New-GuardFileSystemWatcher
 {
-  param ($path, $action, [switch]$IncludeSubdirectories)
+  [cmdletbinding()]
+  param (
+    $path,
+    $action,
+    $PathFilter,
+    [switch]$IncludeSubdirectories)
 
   $file = $null
-  if ( -not (get-item $path).PSIsContainer )
-  {
-    $file = split-path -leaf $path
-    $path = split-path $path
-  }
+
+  Write-Verbose "Creating file system watcher for $path"
   $FileSystemWatcher = new-object IO.FileSystemWatcher $path
+  Write-Verbose "`tInclude subdirectories: $IncludeSubdirectories"
   $FileSystemWatcher.IncludeSubdirectories = $IncludeSubdirectories
-
-  if (-not [string]::isNullorempty($file))
+  if ($psboundparameters.containskey('PathFilter'))
   {
-    $FileSystemWatcher.Filter = $File
+    Write-Verbose "`tPath filter: $PathFilter"
+    $FileSystemWatcher.Filter = $PathFilter
   }
-
+  Write-Verbose "`tUsing LastWrite as the notify filter."
   $FileSystemWatcher.NotifyFilter = [IO.NotifyFilters]'LastWrite'
-  if (-not $global:Guards)
-  {
-    $global:Guards = @()
-  }
-  $global:Guards += Register-ObjectEvent $FileSystemWatcher -EventName 'Changed' -Action $action
+  $script:Guards += Register-ObjectEvent $FileSystemWatcher -EventName 'Changed' -Action $action
 }
 
-function New-GuardFileSystemWatcherAction
+function Add-GuardQueueCommand
 {
-  param( $TestCommand, $TestPath, $PathFilter)
-
-  $action = @"
-`$Queue = [appdomain]::CurrentDomain.GetData('GuardQueue')
-if ( (`$eventargs.fullname -notlike '*\.git') -and
-  (`$eventargs.name -like '$PathFilter')   )
-{
-  `$TestCommandString = '$TestCommand $TestPath'
-  `$array = `$queue.ToArray()
-  if (`$array -notcontains `$TestCommandString)
+  param (
+    [string]
+    $Path,
+    [string]
+    $TestCommandString
+  )
+  if (($Path -notlike '*\.git') )
   {
-    `$queue.enqueue("`$TestCommandString")
+    Get-GuardQueue
+    $array = $script:GuardQueue.ToArray()
+    if ($array -notcontains $TestCommandString)
+    {
+      Write-Verbose "$TestCommandString"
+      $script:GuardQueue.enqueue("$TestCommandString")
+    }
   }
-}
-"@
-  [scriptblock]::create($action)
 }
 
 function Wait-Guard
@@ -134,11 +160,14 @@ function Wait-Guard
     $SecondsToDelay = 5
   )
 
-  $Queue = [appdomain]::CurrentDomain.GetData('GuardQueue')
+  Get-GuardQueue
   do {
-    if ($Queue.count -gt 0)
+    if ($script:GuardQueue.count -gt 0)
     {
-      invoke-expression "$($Queue.dequeue())"
+      clear-screen
+      $Command = $script:GuardQueue.dequeue()
+      Write-Verbose $Command
+      invoke-expression "$Command"
     }
     start-sleep -seconds $SecondsToDelay
   } while ($true)
@@ -156,13 +185,43 @@ function Remove-Guard
   #>
   [cmdletbinding()]
   param()
-  foreach ($Guard in $global:Guards)
+  foreach ($Guard in $script:Guards)
   {
     Get-EventSubscriber $Guard.Name | Unregister-Event
     $Guard | Remove-Job
   }
-  [appdomain]::CurrentDomain.SetData("GuardQueue", $null)
+  Set-GuardCommandQueue -force
+  $script:guards = @()
 }
 
-export-modulemember -function 'New-Guard', 'Wait-Guard', 'Remove-Guard'
+function Get-GuardQueue
+{
+  $script:GuardQueue = [appdomain]::CurrentDomain.GetData('GuardQueue')
+}
+
+function Get-GuardQueuePeek
+{
+  $script:GuardQueue.peek()
+}
+
+function Set-GuardCommandQueue
+{
+  param ([switch] $force)
+  if ((-not (Get-GuardQueue)) -or $force)
+  {
+    [appdomain]::CurrentDomain.SetData("GuardQueue", (new-object System.Collections.Queue))
+  }
+}
+
+
+$CommandsToExport = @(
+  'New-Guard',
+  'Wait-Guard',
+  'Remove-Guard',
+  'Get-GuardQueue',
+  'Get-GuardQueuePeek',
+  'Add-GuardQueueCommand'
+)
+
+export-modulemember -function $CommandsToExport
 
