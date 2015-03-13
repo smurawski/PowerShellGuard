@@ -20,7 +20,7 @@ function New-Guard
   [cmdletbinding()]
   param (
       # File or directory to monitor for changes
-      [parameter(valuefrompipelinebypropertyname)]
+      [parameter(valuefrompipelinebypropertyname=$true)]
       $Path = $pwd,
       # Monitor recursively?
       [switch]
@@ -30,7 +30,7 @@ function New-Guard
       # Command to execute to run tests.  Defaults to Invoke-Pester.
       $TestCommand = 'Invoke-Pester',
       # File or directory containing the tests to run.
-      [parameter(valuefrompipelinebypropertyname)]
+      [parameter(valuefrompipelinebypropertyname=$true)]
       $TestPath,
       # Start monitoring running tests immediately.
       [switch]
