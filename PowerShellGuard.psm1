@@ -143,6 +143,8 @@ function Add-GuardQueueCommand
   }
 }
 
+
+
 function Wait-Guard
 {
   <#
@@ -151,13 +153,14 @@ function Wait-Guard
     .DESCRIPTION
       Blocks and checks a queue for new tests to run.
     .EXAMPLE
-      Wait-Guard -SecondsToDelay 10
+      Wait-Guard -Seconds 10
+      Starts blocking and checks the queue every 10 seconds.
   #>
   [cmdletbinding()]
   param(
     #Number of seconds to wait between queue checks
     [int]
-    $SecondsToDelay = 5
+    $Seconds = 5
   )
 
   Get-GuardQueue
@@ -212,16 +215,4 @@ function Set-GuardCommandQueue
     [appdomain]::CurrentDomain.SetData("GuardQueue", (new-object System.Collections.Queue))
   }
 }
-
-
-$CommandsToExport = @(
-  'New-Guard',
-  'Wait-Guard',
-  'Remove-Guard',
-  'Get-GuardQueue',
-  'Get-GuardQueuePeek',
-  'Add-GuardQueueCommand'
-)
-
-export-modulemember -function $CommandsToExport
 
