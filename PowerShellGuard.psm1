@@ -15,7 +15,7 @@ function New-Guard
       Watch all .rb files under .\lib\chef\knife and when they change, run the unit tests
     .EXAMPLE
       dir *.ps1 | New-Guard -TestPath {"./Tests/$($_.basename).Tests.ps1"}
-      Enumerate a directory and set up a test runner for each ps1 file based on its file name.  For example hello.p1 would have the test ./Tests/hello.Tests.ps1
+      Enumerate a directory and set up a test runner for each ps1 file based on its file name.  For example hello.ps1 would have the test ./Tests/hello.Tests.ps1
   #>
   [cmdletbinding()]
   param (
