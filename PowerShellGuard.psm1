@@ -164,7 +164,8 @@ function Wait-Guard
   )
 
   Get-GuardQueue
-  do {
+  do
+  {
     if ($script:GuardQueue.count -gt 0)
     {
       clear-host
@@ -172,7 +173,7 @@ function Wait-Guard
       Write-Verbose $Command
       invoke-expression "$Command"
     }
-    start-sleep -seconds $SecondsToDelay
+    start-sleep -seconds $Seconds
   } while ($true)
 }
 
