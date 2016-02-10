@@ -41,30 +41,11 @@ test_script:
 # scripts to run before deployment
 deploy_script:
   - ps: |
-      # Creating project artifact
-      $stagingDirectory = (Resolve-Path ..).Path
-      $manifest = Join-Path $pwd "PowerShellGuard.psd1"
-      $manifest_hash = $executioncontext.invokecommand.invokescript((Get-Content $manifest -Raw))[0]
-      [version]$version = $manifest_hash['ModuleVersion']
-      $manifest_hash['ModuleVersion'] = "$($version.major).$($version.minor).$($env:APPVEYOR_BUILD_NUMBER)"
-      $manifest_hash.Remove('PrivateData')
-      New-ModuleManifest -Path $manifest @manifest_hash
-      $zipFilePath = Join-Path $stagingDirectory "$(Split-Path $pwd -Leaf).zip"
-      Add-Type -assemblyname System.IO.Compression.FileSystem
-      [System.IO.Compression.ZipFile]::CreateFromDirectory($pwd, $zipFilePath)
-
       irm 'https://raw.githubusercontent.com/smurawski/AppVeyorSampleHelper/master/TestHelper.psm1' | invoke-expression
-      # Creating NuGet package artifact
-      New-Nuspec -packageName $env:APPVEYOR_PROJECT_NAME -version $manifest_hash['ModuleVersion'] -author $manifest_hash['Author'] -owners $manifest_hash['Author'] -licenseUrl "https://github.com/smurawski/PowerShellGuard/blob/master/LICENSE" -projectUrl "https://github.com/$($env:APPVEYOR_REPO_NAME)" -packageDescription $env:APPVEYOR_PROJECT_NAME -destinationPath .
-      nuget pack ".\$($env:APPVEYOR_PROJECT_NAME).nuspec" -outputdirectory .
-      $nuGetPackageName = $env:APPVEYOR_PROJECT_NAME + "." + $manifest_hash['ModuleVersion'] + ".nupkg"
-      $nuGetPackagePath = (Get-ChildItem $nuGetPackageName).FullName
 
-      @(
-          # You can add other artifacts here
-          $zipFilePath,
-          $nuGetPackagePath
-      ) | % {
-          Write-Host "Pushing package $_ as Appveyor artifact"
-          Push-AppveyorArtifact $_
-        }
+      $Manifest = Get-ModuleManifestHash
+      Update-ModuleManifest $Manifest
+      $UpdatedManifest = Get-ModuleManifestHash
+      $nupkg = New-ModuleNugetPackage $UpdatedManifest
+      $zip = New-ModuleZipFile
+      Publish-BuildArtifact -Path $nupkg, $zip
