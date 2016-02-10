@@ -45,6 +45,7 @@ deploy_script:
       Add-Type -assemblyname System.IO.Compression.FileSystem
       [System.IO.Compression.ZipFile]::CreateFromDirectory($pwd, $zipFilePath)
 
+      irm 'https://raw.githubusercontent.com/smurawski/AppVeyorSampleHelper/master/TestHelper.psm1' | invoke-expression
       # Creating NuGet package artifact
       New-Nuspec -packageName $env:APPVEYOR_PROJECT_NAME -version $manifest_hash['ModuleVersion'] -author $manifest_hash['Author'] -owners $manifest_hash['Author'] -licenseUrl "https://github.com/smurawski/PowerShellGuard/blob/master/LICENSE" -projectUrl "https://github.com/$($env:APPVEYOR_REPO_NAME)" -packageDescription $env:APPVEYOR_PROJECT_NAME -destinationPath .
       nuget pack ".\$($env:APPVEYOR_PROJECT_NAME).nuspec" -outputdirectory .
