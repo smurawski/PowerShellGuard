@@ -47,7 +47,7 @@ deploy_script:
       $manifest_hash = $executioncontext.invokecommand.invokescript((Get-Content $manifest -Raw))[0]
       [version]$version = $manifest_hash['ModuleVersion']
       $manifest_hash['ModuleVersion'] = "$($version.major).$($version.minor).$($env:APPVEYOR_BUILD_NUMBER)"
-      $manifest_hash.Remove('PSData')
+      $manifest_hash.Remove('PrivateData')
       New-ModuleManifest -Path $manifest @manifest_hash
       $zipFilePath = Join-Path $stagingDirectory "$(Split-Path $pwd -Leaf).zip"
       Add-Type -assemblyname System.IO.Compression.FileSystem
