@@ -1,3 +1,5 @@
+[![Build status](https://ci.appveyor.com/api/projects/status/e81t3vdaml1gxa9t/branch/master?svg=true)](https://ci.appveyor.com/project/smurawski/powershellguard/branch/master)
+
 # PowerShellGuard
 A Guard implementation for PowerShell
 
