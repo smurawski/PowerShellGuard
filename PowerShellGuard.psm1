@@ -42,14 +42,14 @@ function New-Guard
   }
   process
   {
-    $Path = (resolve-path $Path).path
+    $Path = (resolve-path $Path).ProviderPath
     if (-not $psboundparameters.containskey('TestPath'))
     {
       $TestPath = $Path
     }
     else
     {
-      $TestPath = (resolve-path $TestPath).Path
+      $TestPath = (resolve-path $TestPath).ProviderPath
     }
 
     $GuardFileSystemWatcherActionParameters = @{
