@@ -11,26 +11,28 @@ function New-Guard
       New-Guard
       Watch the current directory for changes and run Pester on any changes.
     .EXAMPLE
-      New-Guard -Path .\lib\chef\knife\ -PathFilter '*.rb' -MonitorSubdirectories -TestCommand rspec -TestPath .\spec\unit\knife\
+      New-Guard -Path .\lib\chef\knife\ -PathFilter '*.rb' -Recurse -TestCommand rspec -TestPath .\spec\unit\knife\
       Watch all .rb files under .\lib\chef\knife and when they change, run the unit tests
     .EXAMPLE
       dir *.ps1 | New-Guard -TestPath {"./Tests/$($_.basename).Tests.ps1"}
-      Enumerate a directory and set up a test runner for each ps1 file based on its file name.  For example hello.p1 would have the test ./Tests/hello.Tests.ps1
+      Enumerate a directory and set up a test runner for each ps1 file based on its file name.  For example hello.ps1 would have the test ./Tests/hello.Tests.ps1
   #>
-  [cmdletbinding()]
+  [cmdletbinding(SupportsShouldProcess=$true)]
   param (
       # File or directory to monitor for changes
       [parameter(valuefrompipelinebypropertyname=$true)]
       $Path = $pwd,
       # Monitor recursively?
+      [Alias('MonitorSubdirectories')]
       [switch]
-      $MonitorSubdirectories,
+      $Recurse,
       # Standard path filter syntax
       $PathFilter,
       # Command to execute to run tests.  Defaults to Invoke-Pester.
       $TestCommand = 'Invoke-Pester',
       # File or directory containing the tests to run.
       [parameter(valuefrompipelinebypropertyname=$true)]
+      [string]
       $TestPath,
       # Start monitoring running tests immediately.
       [switch]
@@ -38,7 +40,9 @@ function New-Guard
   )
   begin
   {
-    Set-GuardCommandQueue
+    if ($PSCmdlet.ShouldProcess('Creating the command queue')){
+      Set-GuardCommandQueue
+    }
   }
   process
   {
@@ -57,21 +61,23 @@ function New-Guard
       TestPath = $TestPath
     }
 
-    $FileSystemWatcherParameters = @{
-      Path = $Path
-      Action = New-GuardFileSystemWatcherAction @GuardFileSystemWatcherActionParameters
-      IncludeSubdirectories = $MonitorSubdirectories
+    if ($PSCmdlet.ShouldProcess("Creating file system watcher and registering the file path.")){
+      $FileSystemWatcherParameters = @{
+        Path = $Path
+        Action = New-GuardFileSystemWatcherAction @GuardFileSystemWatcherActionParameters
+        IncludeSubdirectories = $Recurse
+      }
+      if ($psboundparameters.containskey('pathfilter'))
+      {
+        $FileSystemWatcherParameters.PathFilter = $PathFilter
+      }
+      elseif (-not (get-item $path).PSIsContainer)
+      {
+        $FileSystemWatcherParameters.PathFilter = split-path -leaf $path
+        $FileSystemWatcherParameters.Path = split-path $path
+      }
+      New-GuardFileSystemWatcher @FileSystemWatcherParameters
     }
-    if ($psboundparameters.containskey('pathfilter'))
-    {
-      $FileSystemWatcherParameters.PathFilter = $PathFilter
-    }
-    elseif (-not (get-item $path).PSIsContainer)
-    {
-      $FileSystemWatcherParameters.PathFilter = split-path -leaf $path
-      $FileSystemWatcherParameters.Path = split-path $path
-    }
-    New-GuardFileSystemWatcher @FileSystemWatcherParameters
   }
   end
   {
@@ -84,10 +90,12 @@ function New-Guard
 
 function New-GuardFileSystemWatcherAction
 {
-  [cmdletbinding()]
+  [OutputType([System.Management.Automation.ScriptBlock])]
+  [cmdletbinding(SupportsShouldProcess=$true)]
   param( $TestCommand, $TestPath)
 
-  $action = @"
+  if ($PSCmdlet.ShouldProcess("Creating action scriptblock")){
+    $action = @"
 `$Parameters = @{
   Path = `$eventargs.fullpath
   TestCommandString = '$TestCommand $TestPath'
@@ -95,32 +103,36 @@ function New-GuardFileSystemWatcherAction
 
 Add-GuardQueueCommand @Parameters
 "@
-  [scriptblock]::create($action)
+    [scriptblock]::create($action)
+  }
 }
 
 function New-GuardFileSystemWatcher
 {
-  [cmdletbinding()]
+  [cmdletbinding(SupportsShouldProcess=$true)]
   param (
     $path,
     $action,
     $PathFilter,
     [switch]$IncludeSubdirectories)
 
-  $file = $null
-
-  Write-Verbose "Creating file system watcher for $path"
-  $FileSystemWatcher = new-object IO.FileSystemWatcher $path
-  Write-Verbose "`tInclude subdirectories: $IncludeSubdirectories"
-  $FileSystemWatcher.IncludeSubdirectories = $IncludeSubdirectories
+  if ($PSCmdlet.ShouldProcess($path, 'Creating FileSystemWatcher')){
+    $FileSystemWatcher = new-object IO.FileSystemWatcher $path
+  }
+  if ($PSCmdlet.ShouldProcess($IncludeSubdirectories, 'Including Subdirectories')){
+    $FileSystemWatcher.IncludeSubdirectories = $IncludeSubdirectories
+  }
   if ($psboundparameters.containskey('PathFilter'))
   {
-    Write-Verbose "`tPath filter: $PathFilter"
-    $FileSystemWatcher.Filter = $PathFilter
+    if ($PSCmdlet.ShouldProcess($PathFilter, 'Path filter:')){
+      $FileSystemWatcher.Filter = $PathFilter
+    }
   }
   Write-Verbose "`tUsing LastWrite as the notify filter."
-  $FileSystemWatcher.NotifyFilter = [IO.NotifyFilters]'LastWrite'
-  $script:Guards += Register-ObjectEvent $FileSystemWatcher -EventName 'Changed' -Action $action
+  if ($PSCmdlet.ShouldProcess('Setting up LastWrite as the notify filter and registering the FileSystemWatcher.')) {
+    $FileSystemWatcher.NotifyFilter = [IO.NotifyFilters]'LastWrite'
+    $script:Guards += Register-ObjectEvent $FileSystemWatcher -EventName 'Changed' -Action $action
+  }
 }
 
 function Add-GuardQueueCommand
@@ -171,7 +183,7 @@ function Wait-Guard
       clear-host
       $Command = $script:GuardQueue.dequeue()
       Write-Verbose $Command
-      invoke-expression "$Command"
+      $ExecutionContext.InvokeCommand.InvokeScript($Command)
     }
     start-sleep -seconds $Seconds
   } while ($true)
