@@ -26,7 +26,25 @@ dir *.ps1 | New-Guard -TestPath {"./Tests/$($_.basename).Tests.ps1"} -wait
 ```
 Enumerate a directory and set up a test runner for each ps1 file based on its file name.  For example hello.ps1 would have the test ./Tests/hello.Tests.ps1
 
+## Installing PowerShellGuard
 
+You can install PowerShellGuard via PowerShellGet from the PowerShellGallery.
+
+```powershell
+Install-Module PowerShellGuard
+```
+
+If you want the development feed (built from master),
+
+```powershell
+Register-PSRepository -Name PowerShellGuard_current -SourceLocation 'https://ci.appveyor.com/nuget/PowerShellGuard/'
+```
+
+```powershell
+Install-Module PowerShellGuard -Source PowerShellGuard_current
+```
+
+ 
 # Contributing
 
 * Source hosted at [GitHub][repo]
