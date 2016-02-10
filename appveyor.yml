@@ -21,7 +21,6 @@ nuget:
   disable_publish_on_pr: true
 
 build: false
-  verbosity: minimal
 #---------------------------------#
 #      test configuration         #
 #---------------------------------#
