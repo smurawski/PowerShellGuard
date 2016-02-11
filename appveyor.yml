@@ -3,6 +3,8 @@
 #---------------------------------#
 os: unstable
 install:
+  - ps: 'Get-CimInstance win32_operatingsystem -Property Caption, OSArchitecture, Version | fl Caption, OSArchitecture, Version'
+  - ps: $PSVersionTable
   - cinst -y pester
 
 #---------------------------------#
@@ -14,16 +16,15 @@ branches:
 
 version: 0.8.{build}
 
+skip_tags: true
+
 pull_requests:
   do_not_increment_build_number: true
 
 nuget:
   disable_publish_on_pr: true
 
-build: false
-#---------------------------------#
-#      test configuration         #
-#---------------------------------#
+build: off
 
 test_script:
     - ps: |
@@ -34,11 +35,6 @@ test_script:
             throw "$($res.FailedCount) tests failed."
         }
 
-#---------------------------------#
-#      deployment configuration   #
-#---------------------------------#
-
-# scripts to run before deployment
 deploy_script:
   - ps: |
       irm 'https://raw.githubusercontent.com/smurawski/AppVeyorSampleHelper/master/TestHelper.psm1' | invoke-expression
