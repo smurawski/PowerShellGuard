@@ -20,21 +20,30 @@ function New-Guard
   [cmdletbinding(SupportsShouldProcess=$true)]
   param (
       # File or directory to monitor for changes
-      [parameter(valuefrompipelinebypropertyname=$true)]
+      [parameter(
+        valuefrompipelinebypropertyname=$true)]
       $Path = $pwd,
       # Monitor recursively?
+      [parameter(
+        valuefrompipelinebypropertyname=$true)]
       [Alias('MonitorSubdirectories')]
       [switch]
       $Recurse,
       # Standard path filter syntax
+      [parameter(
+        valuefrompipelinebypropertyname=$true)]
       $PathFilter,
       # Command to execute to run tests.  Defaults to Invoke-Pester.
+      [parameter(
+        valuefrompipelinebypropertyname=$true)]
       $TestCommand = 'Invoke-Pester',
       # File or directory containing the tests to run.
       [parameter(valuefrompipelinebypropertyname=$true)]
       [string]
       $TestPath,
       # Start monitoring running tests immediately.
+      [parameter(
+        valuefrompipelinebypropertyname=$true)]
       [switch]
       $Wait
   )
