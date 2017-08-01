@@ -1,7 +1,7 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/e81t3vdaml1gxa9t/branch/master?svg=true)](https://ci.appveyor.com/project/smurawski/powershellguard/branch/master)
 
 # PowerShellGuard
-A Guard implementation for PowerShell
+A [Guard](https://github.com/guard/guard) implementation for PowerShell, which allows for Pester tests to automatically be run whenever you make changes to a file.
 
 ## Why PowerShellGuard?
 
