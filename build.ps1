@@ -21,7 +21,7 @@ if ($Unit) {
 
 if ($Publish) {
     $PublishParameters = @{
-        Path        = "$pwd"
+        Path        = "$pwd/PowerShellGuard.psd1"
         NugetApiKey = $NugetApiKey
         Force       = $true
     }
