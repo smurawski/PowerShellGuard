@@ -26,7 +26,8 @@ if ($Publish) {
         Force       = $true
     }
     if (-not [string]::IsNullOrEmpty($GalleryUri)) {
-        Register-PSRepository -Name CustomFeed -SourceLocation $GalleryUri -PublishLocation "$($GalleryUri.trim('/'))/package"
+        $cred = New-Object pscredential -ArgumentList 'smurawski', $NugetApiKey
+        Register-PSRepository -Name CustomFeed -SourceLocation $GalleryUri -PublishLocation "$($GalleryUri.trim('/'))/package" -Credential $cred
         $PublishParameters.Repository = 'CustomFeed'
     }
     Install-PackageProvider -Name NuGet -Force -ForceBootstrap -scope CurrentUser
