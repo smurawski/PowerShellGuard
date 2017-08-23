@@ -21,14 +21,12 @@ if ($Unit) {
 
 if ($Publish) {
     $PublishParameters = @{
-        Path        = "$pwd/PowerShellGuard.psd1"
+        Path        = "$pwd/"
         NugetApiKey = $NugetApiKey
         Force       = $true
     }
     if (-not [string]::IsNullOrEmpty($GalleryUri)) {
-        $secpasswd = ConvertTo-SecureString $NugetApiKey -AsPlainText -Force
-        $mycreds = New-Object System.Management.Automation.PSCredential ("smurawskik", $secpasswd)
-        Register-PSRepository -Name CustomFeed -SourceLocation $GalleryUri -PublishLocation "$($GalleryUri.trim('/'))/package" -Credential $mycreds
+        Register-PSRepository -Name CustomFeed -SourceLocation $GalleryUri -PublishLocation "$($GalleryUri.trim('/'))/package"
         $PublishParameters.Repository = 'CustomFeed'
     }
     Install-PackageProvider -Name NuGet -Force -ForceBootstrap -scope CurrentUser
