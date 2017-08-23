@@ -8,7 +8,7 @@ param (
 
 if ($Syntax) {
     Install-Module -Name PSScriptAnalyzer -F -Scope CurrentUser
-    Invoke-ScriptAnalyzer –Path . –Recurse | 
+    Invoke-ScriptAnalyzer -Path . -Recurse | 
         Where-Object severity -eq \"Warning\" | 
         ForEach-Object {
         Write-Host "##vso[task.logissue type=$($_.Severity);sourcepath=$($_.ScriptPath);linenumber=$($_.Line);columnnumber=$($_.Column);]$($_.Message)"
@@ -21,9 +21,9 @@ if ($Unit) {
 
 if ($Publish) {
     $PublishParameters = @{
-        Path = "$pwd",
-        NugetApiKey = $NugetApiKey,
-        Force = $true
+        Path        = "$pwd"
+        NugetApiKey = $NugetApiKey
+        Force       = $true
     }
     if (-not [string]::IsNullOrEmpty($GalleryUri)) {
         Register-PSRepository -Name CustomFeed -SourceLocation $GalleryUri -PublishLocation "$($GalleryUri.trim('/'))/package"
