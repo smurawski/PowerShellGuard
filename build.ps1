@@ -26,8 +26,9 @@ if ($Publish) {
         Force       = $true
     }
     if (-not [string]::IsNullOrEmpty($GalleryUri)) {
-        $cred = New-Object pscredential -ArgumentList 'smurawski', $NugetApiKey
-        Register-PSRepository -Name CustomFeed -SourceLocation $GalleryUri -PublishLocation "$($GalleryUri.trim('/'))/package" -Credential $cred
+        $secpasswd = ConvertTo-SecureString $NugetApiKey -AsPlainText -Force
+        $mycreds = New-Object System.Management.Automation.PSCredential ("smurawskik", $secpasswd)
+        Register-PSRepository -Name CustomFeed -SourceLocation $GalleryUri -PublishLocation "$($GalleryUri.trim('/'))/package" -Credential $mycreds
         $PublishParameters.Repository = 'CustomFeed'
     }
     Install-PackageProvider -Name NuGet -Force -ForceBootstrap -scope CurrentUser
