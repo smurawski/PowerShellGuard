@@ -20,8 +20,11 @@ if ($Unit) {
 }
 
 if ($Publish) {
+    $ModuleDir = mkdir "$pwd/Release/PowerShellGuard"
+    Copy-Item './PowerShellGuard.psm1', './PowerShellGuard.psd1', './LICENSE', './README.md' -Destination $ModuleDir 
+
     $PublishParameters = @{
-        Path        = "$pwd/"
+        Path        = $ModuleDir
         NugetApiKey = $NugetApiKey
         Force       = $true
     }
