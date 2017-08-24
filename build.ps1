@@ -2,9 +2,14 @@ param (
     [switch]$Syntax,
     [switch]$Unit,
     [switch]$Publish,
+    [switch]$Promote,
     [string]$GalleryUri,
     [string]$NugetApiKey
 )
+function CreateModuleDir ($ModuleDir) {
+    if (test-path $ModuleDir) {remove-item $ModuleDir -Recurse -Force}
+    mkdir $ModuleDir -Force | Out-Null
+}
 
 if ($Syntax) {
     Install-Module -Name PSScriptAnalyzer -F -Scope CurrentUser
@@ -20,7 +25,8 @@ if ($Unit) {
 }
 
 if ($Publish) {
-    $ModuleDir = mkdir "$pwd/Release/PowerShellGuard"
+    $ModuleDir = "$pwd/Release/PowerShellGuard"
+    CreateModuleDir $ModuleDir    
     Copy-Item './PowerShellGuard.psm1', './PowerShellGuard.psd1', './LICENSE', './README.md' -Destination $ModuleDir 
 
     $PublishParameters = @{
@@ -32,6 +38,24 @@ if ($Publish) {
         Register-PSRepository -Name CustomFeed -SourceLocation $GalleryUri -PublishLocation "$($GalleryUri.trim('/'))/package"
         $PublishParameters.Repository = 'CustomFeed'
     }
+    Install-PackageProvider -Name NuGet -Force -ForceBootstrap -scope CurrentUser
+    Publish-Module @PublishParameters
+}
+
+if ($Promote) {
+    $ModuleDir = "$pwd/Release/PowerShellGuard"
+    CreateModuleDir $ModuleDir 
+
+    if (-not [string]::IsNullOrEmpty($GalleryUri)) {
+        Register-PSRepository -Name CustomFeed -SourceLocation $GalleryUri -PublishLocation "$($GalleryUri.trim('/'))/package"
+        Save-Module PowershellGuard -Path $pwd/Release
+    }
+    $PublishParameters = @{
+        Path        = $ModuleDir
+        NugetApiKey = $NugetApiKey
+        Force       = $true
+    }
+    
     Install-PackageProvider -Name NuGet -Force -ForceBootstrap -scope CurrentUser
     Publish-Module @PublishParameters
 }
