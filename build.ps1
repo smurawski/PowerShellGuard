@@ -2,12 +2,13 @@ param (
     [switch]$Syntax,
     [switch]$Unit,
     [switch]$Publish,
+    [switch]$Version,
     [switch]$Promote,
     [string]$GalleryUri,
-    [string]$NugetApiKey
+    [string]$NugetApiKey,
+    [int]$Build
 )
 function CreateModuleDir ($ModuleDir) {
-    if (test-path $ModuleDir) {remove-item $ModuleDir -Recurse -Force}
     mkdir $ModuleDir -Force | Out-Null
 }
 
@@ -24,10 +25,18 @@ if ($Unit) {
     Invoke-Pester ./test -EnableExit -Strict -OutputFile test-results.xml -OutputFormat NUnitXml -passthru
 }
 
+if ($Version) {
+    $ModuleDir = "$pwd/Release/PowerShellGuard"
+    CreateModuleDir $ModuleDir    
+    get-content '.\PowerShellGuard.psd1' | 
+        ForEach-Object { $_ -replace '{BUILDNUMBER}', $Build} |
+        set-content -Encoding UTF8 -Path $ModuleDir/PowerShellGuard.psd1
+}
+
 if ($Publish) {
     $ModuleDir = "$pwd/Release/PowerShellGuard"
     CreateModuleDir $ModuleDir    
-    Copy-Item './PowerShellGuard.psm1', './PowerShellGuard.psd1', './LICENSE', './README.md' -Destination $ModuleDir 
+    Copy-Item './PowerShellGuard.psm1', './LICENSE', './README.md' -Destination $ModuleDir 
 
     $PublishParameters = @{
         Path        = $ModuleDir
