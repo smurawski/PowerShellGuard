@@ -48,7 +48,7 @@ if ($Promote) {
 
     if (-not [string]::IsNullOrEmpty($GalleryUri)) {
         Register-PSRepository -Name CustomFeed -SourceLocation $GalleryUri -PublishLocation "$($GalleryUri.trim('/'))/package"
-        Save-Module PowershellGuard -Path $pwd/Release
+        Save-Module PowershellGuard -Repository CustomFeed -Path $pwd/Release
     }
     $PublishParameters = @{
         Path        = $ModuleDir
