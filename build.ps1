@@ -54,6 +54,7 @@ if ($Promote) {
         Path        = $ModuleDir
         NugetApiKey = $NugetApiKey
         Force       = $true
+        Repository  = 'PSGallery'
     }
     
     Install-PackageProvider -Name NuGet -Force -ForceBootstrap -scope CurrentUser
